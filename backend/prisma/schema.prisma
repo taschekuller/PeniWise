@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  events         Event[]
+  notifications  Notification[]
+  notificationSettings NotificationSettings?
+
+  @@map("users")
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  date        DateTime
+  time        String?
+  location    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("events")
+}
+
+model Notification {
+  id        String            @id @default(cuid())
+  title     String
+  message   String
+  type      NotificationType
+  read      Boolean           @default(false)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model NotificationSettings {
+  id                    String  @id @default(cuid())
+  emailNotifications    Boolean @default(true)
+  pushNotifications     Boolean @default(true)
+  eventReminders        Boolean @default(true)
+  marketingEmails       Boolean @default(false)
+  reminderTime          Int     @default(15) // minutes before event
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_settings")
+}
+
+enum NotificationType {
+  EVENT_REMINDER
+  EVENT_CREATED
+  EVENT_UPDATED
+  EVENT_DELETED
+  SYSTEM_MESSAGE
+  MARKETING
+}

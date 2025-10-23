@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: peniwise-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: peniwise
+      POSTGRES_USER: peniwise
+      POSTGRES_PASSWORD: peniwise123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - peniwise-network
+
+  # Redis for caching and sessions
+  redis:
+    image: redis:7-alpine
+    container_name: peniwise-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - peniwise-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: peniwise-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://peniwise:peniwise123@postgres:5432/peniwise
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_SECURE=false
+      - SMTP_USER=your-email@gmail.com
+      - SMTP_PASS=your-app-password
+      - SMTP_FROM=noreply@peniwise.com
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - peniwise-network
+    command: npm run start:dev
+
+  # Frontend (if you want to run it in Docker too)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: peniwise-frontend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - EXPO_PUBLIC_API_URL=http://localhost:3000/api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - peniwise-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  peniwise-network:
+    driver: bridge
