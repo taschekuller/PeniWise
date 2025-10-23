@@ -1,0 +1,16 @@
+# Node
+node_modules/
+pnpm-lock.yaml
+
+# Expo
+.expo/
+.expo-shared/
+dist/
+
+# Logs
+*.log
+
+# Build outputs
+build/
+android/
+ios/
